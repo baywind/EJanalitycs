@@ -1,0 +1,141 @@
+Reusables : ResourceLink {
+	framework = "Reusables";
+	jsLink = "scripts.js";
+	cssLink = "style.css";
+}
+LocalLinks : ResourceLink {
+	framework = "app";
+	jsLink = "scripts.js";
+	cssLink = "styles.css";
+}
+
+Schools : WORepetition {
+  list = schools;
+  item = item;
+}
+
+SchoolNameSpan : WOGenericContainer {
+  elementName = "strong";
+  title = item.fullName;
+}
+
+SchoolName : WOString {
+  value = item.shortName;
+}
+
+hasDivision : WOConditional {
+  condition = item.division;
+}
+
+DivName : WOString {
+  value = item.division;
+}
+
+LoginLink : WOHyperlink {
+  href = item.loginURL;
+  target = "_blank";
+}
+
+Reports : WORepetition {
+  list = reports;
+  item = item;
+}
+
+ReportContainer : OnClickContainer {
+  elementName = "p";
+  title = item.description;
+  class = reportClass;
+  invokeAction = selectReport;
+}
+
+ReportTitle : WOString {
+  value = item.title;
+}
+
+ReportActive : WOConditional {
+  condition = currReport;
+}
+ReportInactive : WOConditional {
+  condition = currReport;
+  negate = true;
+}
+
+SchoolSelected : WOCheckBox {
+  checked = item.selected;
+}
+
+
+ReportForm : WOForm {
+  action = sendReport;
+}
+
+SendRequest : WOSubmitButton {
+  action = sendReport;
+}
+
+QueryParams : WORepetition {
+  list = currReport.queryParams;
+  item = item;
+}
+
+ParamName : WOString {
+  value = item.title;
+}
+
+ParamValue : WOTextField {
+  value = paramValue;
+  title = item.desription;
+}
+
+MultipleSchools : WOConditional {
+  condition = schools.count;
+}
+
+SchoolContailner : OnClickContainer {
+  elementName = "p";
+  title = item.fullName;
+  class = schoolClass;
+  invokeAction = selectSchool;
+}
+
+ActiveSchoolName : WOString {
+  value = currSchool.shortName;
+}
+ActiveDivName : WOString {
+  value = currSchool.division;
+}
+QueryName : WOString {
+  value = query.name;
+}
+
+Queries : WORepetition {
+  list = queries;
+  item = query;
+}
+
+QueryParamsPresentation : WOString {
+  value = query.params;
+}
+
+QueryResult : WOString {
+  value = queryResult;
+  escapeHTML = false;
+}
+
+HasQueryResult : WOConditional {
+  condition = queryResult;
+}
+
+NoSchoolSelected : WOConditional {
+  condition = currSchool;
+  negate = true;
+}
+
+SchoolIsSelected : WOConditional {
+  condition = currSchool;
+}
+
+GetXML : WOHyperlink {
+  action = openXML;
+  target = "_blank";
+}

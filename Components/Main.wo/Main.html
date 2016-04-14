@@ -1,0 +1,63 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta name="generator" content="WebObjects 5.4.4" />
+		<title>EJ Analytics</title>
+		<webobject name = "Reusables"/>
+		<webobject name = "LocalLinks"/>
+	</head>
+	<body>
+	
+<div style = "width:19%;float:left;">
+
+	<h3>Виды запросов:</h3><webobject name = "Reports">
+	<webobject name = "ReportContainer"><webobject name = "ReportTitle"/></webobject>
+	</webobject>
+	<webobject name = "MultipleSchools">
+		<h3>Подключённые школы</h3><webobject name = "Schools">
+		<webobject name = "SchoolContailner"><strong><webobject name = "SchoolName"/></strong>
+			<webobject name = "hasDivision">отделение: <em><webobject name = "DivName"/></em>
+		</webobject></webobject>
+		</webobject>
+	</webobject>
+</div>
+
+<div style = "width:79%;float:right;">
+<h3><webobject name = "ActiveSchoolName"/> <em><webobject name = "ActiveDivName"/></em></h3>
+<webobject name = "ReportActive"><webobject name = "ReportForm">
+	<webobject name = "QueryParams"><span>
+		<webobject name = "ParamName"/>: <webobject name = "ParamValue"/>
+	</span></webobject>
+	<webobject name = "Schools">
+	<div>
+		<webobject name = "SchoolSelected"/>
+		<webobject name = "SchoolNameSpan"><webobject name = "SchoolName"/></webobject>
+		<webobject name = "hasDivision">отделение: <em><webobject name = "DivName"/></em></webobject>
+		<webobject name = "ReportInactive"><webobject name = "LoginLink">&gt;&gt;</webobject></webobject>
+	</div>
+	</webobject>
+	<webobject name = "SendRequest"/></webobject>
+</webobject>
+
+
+<table><webobject name = "Queries"><webobject name = "HasQueryResult">
+		<tr><td colspan = "3"></td></tr>
+		<tr class = "gerade">
+			<td><webobject name = "QueryName"/></td>
+			<td><webobject name = "QueryParamsPresentation"/></td>
+			<td><webobject name = "QueryResult"/></td>
+			<td><webobject name = "SchoolIsSelected"><webobject name = "GetXML">&gt;xml&lt;</webobject></webobject></td>
+		</tr><webobject name = "NoSchoolSelected">
+			<webobject name = "Schools"><webobject name = "HasQueryResult">
+			<tr class = "ungerade"><td colspan = "2">
+				<strong><webobject name = "SchoolName"/></strong>
+				<webobject name = "hasDivision">отделение: <em><webobject name = "DivName"/></em>
+				</webobject></td>
+				<td><webobject name = "QueryResult"/></td>
+			</tr>
+		</webobject></webobject></webobject>
+</webobject></webobject></table>
+</div>
+	</body>
+</html>
