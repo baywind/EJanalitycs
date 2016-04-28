@@ -139,3 +139,7 @@ GetXML : WOHyperlink {
   action = openXML;
   target = "_blank";
 }
+
+QueryIssued : WOString {
+  value = query.issued;
+}

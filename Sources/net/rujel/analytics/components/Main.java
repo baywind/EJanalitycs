@@ -4,9 +4,6 @@ package net.rujel.analytics.components;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
@@ -19,9 +16,7 @@ import java.util.Enumeration;
 import java.util.Iterator;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.JSONTokener;
 
 import com.webobjects.appserver.WOComponent;
 import com.webobjects.appserver.WOContext;
@@ -36,6 +31,7 @@ import com.webobjects.foundation.NSKeyValueCoding;
 import com.webobjects.foundation.NSMutableArray;
 import com.webobjects.foundation.NSMutableDictionary;
 
+import net.rujel.analytics.Application;
 import net.rujel.reusables.SettingsReader;
 import net.rujel.reusables.Various;
 import com.webobjects.appserver.WOActionResults;
@@ -51,12 +47,10 @@ public class Main extends WOComponent {
 	public static final int QUERY_TIMED_OUT = -1;
 	public static final int AWAITING_RESPONSE = 2;
 	public static final int QUERY_QUEUED = 3;
+	public static final int ERROR = 4;
 	
-	protected File home;
 	public NSMutableArray schools = new NSMutableArray();
-	public NSMutableDictionary schoolByID;
-	public NSMutableArray reports = new NSMutableArray();
-	public NSMutableArray queries = new NSMutableArray();
+//	public NSMutableDictionary schoolByID;
 	public Object item;
 	public NSMutableDictionary query;
 	public NSMutableDictionary currReport;
@@ -66,18 +60,7 @@ public class Main extends WOComponent {
 
 	public Main(WOContext context) {
 		super(context);
-		
-		String homePath = SettingsReader.stringForKeyPath("analytics.workingDir", null);
-		if(homePath == null)
-			throw new IllegalStateException("Analytics working directory is not defined");
-		homePath = Various.convertFilePath(homePath);
-		home = new File(homePath);
-		if(!home.canRead())
-			throw new IllegalStateException("Can't read working directory");
-		File dir = new File(home,"school");
-		if(dir.exists()) {
-			JSONObject.Utility.dictsFromJSON(dir,schools, false);
-		}
+				/*
 		if(schools.count() == 1) {
 			currSchool = (NSMutableDictionary)schools.objectAtIndex(0);
 			schoolByID = new NSMutableDictionary(currSchool,currSchool.valueForKey("schoolID"));
@@ -89,15 +72,7 @@ public class Main extends WOComponent {
 				NSDictionary scl = (NSDictionary) enu.nextElement();
 				schoolByID.setObjectForKey(scl, scl.valueForKey("schoolID"));
 			}
-		}
-		dir = new File(home,"report");
-		if(dir.exists()) {
-			JSONObject.Utility.dictsFromJSON(dir,reports, false);
-		}
-		dir = new File(home,"query");
-		if(dir.exists()) {
-			JSONObject.Utility.dictsFromJSON(dir,queries, false);
-		}
+		}*/
 	}
 
 
@@ -138,44 +113,48 @@ public class Main extends WOComponent {
 	}
 	
 	public WOActionResults sendReport() {
-		File responseDir = new File(home,"response");
-		if(!responseDir.exists())
-			responseDir.mkdir();
 		Date date = new Date();
 		String queryID = idFormat.format(date);
 		JSONObject queryJSON = new JSONObject();
 		queryJSON.putOpt("queryID", queryID);
 		queryJSON.putOpt("name",currReport.valueForKey("title"));
 		queryJSON.putOpt("issued", dateTimeFormat.format(date));
-		
-		StringBuilder buf = new StringBuilder();
-		buf.append(currReport.valueForKey("entity")).append('?');
-		NSArray queryParams = (NSArray)currReport.valueForKey("queryParams");
-		Enumeration paramsEnu = queryParams.objectEnumerator();
-		try {
-			while (paramsEnu.hasMoreElements()) {
-				NSDictionary param = (NSDictionary) paramsEnu.nextElement();
-				String key = (String)param.valueForKey("param");
-				String value = (String) paramsDict.valueForKey(key);
-				if(value == null)
-					continue;
-				value = URLEncoder.encode(value, WOMessage.defaultURLEncoding());
-				buf.append('&').append(key).append('=').append(value);
+		boolean jsonRequest = currReport.containsKey("agregations");
+		String queryString = null;
+		if(jsonRequest) {
+			queryJSON.put("entity", currReport.valueForKey("entity"));
+			queryJSON.put("agregations", currReport.valueForKey("agregations"));
+			queryJSON.put("queryParams", new JSONObject(paramsDict));
+		} else {
+
+			StringBuilder buf = new StringBuilder();
+			buf.append(currReport.valueForKey("entity")).append('?');
+			NSArray queryParams = (NSArray)currReport.valueForKey("queryParams");
+			Enumeration paramsEnu = queryParams.objectEnumerator();
+			try {
+				while (paramsEnu.hasMoreElements()) {
+					NSDictionary param = (NSDictionary) paramsEnu.nextElement();
+					String key = (String)param.valueForKey("param");
+					Object value = paramsDict.valueForKey(key);
+					if(value == null)
+						continue;
+					value = URLEncoder.encode(value.toString(), WOMessage.defaultURLEncoding());
+					buf.append('&').append(key).append('=').append(value);
+				}
+				JSONObject presetParams = (JSONObject) currReport.valueForKey("presetParams");
+				Iterator iter = presetParams.keys();
+				while (iter.hasNext()) {
+					String key = (String) iter.next();
+					String value = presetParams.getString(key);
+					value = URLEncoder.encode(value, WOMessage.defaultURLEncoding());
+					buf.append('&').append(key).append('=').append(value);
+				}
+			} catch (UnsupportedEncodingException e) {
+				throw new NSForwardException(e);
 			}
-			JSONObject presetParams = (JSONObject) currReport.valueForKey("presetParams");
-			Iterator iter = presetParams.keys();
-			while (iter.hasNext()) {
-				String key = (String) iter.next();
-				String value = presetParams.getString(key);
-				value = URLEncoder.encode(value, WOMessage.defaultURLEncoding());
-				buf.append('&').append(key).append('=').append(value);
-			}
-		} catch (UnsupportedEncodingException e) {
-			throw new NSForwardException(e);
+			queryString = buf.toString();
 		}
-		String queryString = buf.toString();
 		JSONObject bySchool = new JSONObject();
-		queryJSON.put("results", bySchool);
 		try {
 			if(schools.count() > 0) {
 				Enumeration enu = schools.objectEnumerator();
@@ -183,17 +162,20 @@ public class Main extends WOComponent {
 					NSMutableDictionary scl = (NSMutableDictionary) enu.nextElement();
 					if(!Various.boolForObject(scl.valueForKey("selected")))
 						continue;
-					sendRequestToSchool(scl, queryString, queryID, responseDir, bySchool);
+					if(jsonRequest)
+						sendJSONrequestToSchool(scl, queryJSON, bySchool);
+					else
+						sendRequestToSchool(scl, queryString, queryID, bySchool);
 				}
+				queryJSON.remove("responseURL");
 			} else {
-				sendRequestToSchool(currSchool, queryString, queryID, responseDir, bySchool);
+				if(jsonRequest)
+					sendJSONrequestToSchool(currSchool, queryJSON, bySchool);
+				else
+					sendRequestToSchool(currSchool, queryString, queryID, bySchool);
 			}
-			responseDir = new File(home,"query");
-			File resultFile = new File(responseDir,queryID + ".json");
-			FileWriter writer = new FileWriter(resultFile);
-			queryJSON.write(writer,2,0);
-			writer.close();
-			queries.insertObjectAtIndex(JSONObject.Utility.dictFromJSON(queryJSON, false), 0);
+			queryJSON.put("results", bySchool);
+			application().takeValueForKey(queryJSON, "newQuery");
 		} catch (IOException e) {
 			throw new NSForwardException(e);
 		}
@@ -201,8 +183,39 @@ public class Main extends WOComponent {
 		return null;
 	}
 	
-	protected Object sendRequestToSchool(NSMutableDictionary scl, String queryString, 
-			String queryID, File responseDir, JSONObject bySchool) throws IOException {
+	protected void sendJSONrequestToSchool(NSMutableDictionary scl,JSONObject json,
+			JSONObject bySchool) throws IOException {
+		StringBuilder buf = new StringBuilder((String)application().valueForKey("responseURL"));
+		String schoolID = (String)scl.valueForKey("schoolID");
+		buf.append("?schoolID=").append(schoolID).append("&queryID=").append(json.get("queryID"));
+		json.put("responseURL",buf.toString());
+		URL url = new URL((String)scl.valueForKey("serviceURL"));
+		int port = url.getPort();
+		if(port < 0)
+			port = url.getDefaultPort();
+		WOHTTPConnection http = new WOHTTPConnection(url.getHost(), port);
+		buf = new StringBuilder(url.toString());
+		if(buf.charAt(buf.length() -1) != '/')
+			buf.append('/');
+		buf.append("jsonQuery?schoolID=").append(schoolID);
+		if(bySchool != null)
+			bySchool.put(schoolID, QUERY_ISSUED);
+		WORequest request = new WORequest(
+				"GET", buf.toString(), "HTTP/1.1", null, null, null);
+		request.setContent(json.toString());
+		http.sendRequest(request);
+		WOResponse response = http.readResponse();
+		if(bySchool != null) {
+			if(response == null)
+				bySchool.put(schoolID,ERROR);
+			else
+				bySchool.put(schoolID, (response.status() == WOResponse.HTTP_STATUS_OK)?
+						QUERY_QUEUED:response.status());
+		}
+	}
+	
+	protected void sendRequestToSchool(NSMutableDictionary scl, String queryString, 
+			String queryID, JSONObject bySchool) throws IOException {
 		String schoolID = (String)scl.valueForKey("schoolID");
 		URL url = new URL((String)scl.valueForKey("serviceURL"));
 		int port = url.getPort();
@@ -221,17 +234,15 @@ public class Main extends WOComponent {
 				"GET", buf.toString(), "HTTP/1.1", null, null, null);
 		http.sendRequest(request);
 		WOResponse response = http.readResponse();
+		if(response == null) {
+			if(bySchool != null)
+				bySchool.put(schoolID,ERROR);
+			return;
+		}
 		result = dateTimeFormat.format(new Date());
 		if(bySchool != null)
 			bySchool.put(schoolID, result);
-		File schoolDir = new File(responseDir,schoolID);
-		if(!schoolDir.exists())
-			schoolDir.mkdirs();
-		File resultFile = new File(schoolDir,queryID + ".xml");
-		FileOutputStream fileOutputStream = new FileOutputStream(resultFile);
-		response.content().writeToStream(fileOutputStream);
-		fileOutputStream.close();
-		return result;
+		((Application)application()).addResponse(response.content(), schoolID, queryID);
 	}
 
 	public String paramValue() {
@@ -283,7 +294,7 @@ public class Main extends WOComponent {
 	}
 	
 	protected static final String[] resDecode = new String[] {
-		"Запрос отправлен","Ответ получен","Ожидание доступности","Время ожидания превышено"};
+	"Запрос отправлен","Ответ получен","Ожидание доступности","Время ожидания превышено","Ошибка"};
 	public String queryResult() {
 		if(query == null)
 			return null;
@@ -300,8 +311,11 @@ public class Main extends WOComponent {
 			int count = 0;
 			while (iter.hasNext()) {
 				String key = (String) iter.next();
-				if(results.get(key) instanceof String)
-					count++;
+				Object res = results.get(key);
+				if(res instanceof String ) {
+					if(!((String)res).startsWith("ERROR"))
+						count++;
+				}
 			}
 			if(count == 0)
 				return "&oslash;";
@@ -319,7 +333,10 @@ public class Main extends WOComponent {
 //			return (String)res;
 		if(res instanceof Number)
 			return resDecode[((Number)res).intValue()];
-		return res.toString();
+		String result = res.toString();
+		if(result.length() >= 20)
+			result = result.substring(0, 15) + "...";
+		return result;
 	}
 
 	public void setItem(Object item) {
@@ -350,6 +367,7 @@ public class Main extends WOComponent {
 			NSMutableDictionary scl = currSchool;
 			if(currSchool == null)
 				scl = (NSMutableDictionary)item;
+			File home = (File)application().valueForKey("home");
 			File toLoad = new File(home,"response");
 			String id = (String)scl.valueForKey("schoolID");
 			toLoad = new File(toLoad,id);

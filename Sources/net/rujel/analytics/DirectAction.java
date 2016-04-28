@@ -5,7 +5,9 @@ import com.webobjects.appserver.WOActionResults;
 import com.webobjects.appserver.WOApplication;
 import com.webobjects.appserver.WOComponent;
 import com.webobjects.appserver.WORequest;
+import com.webobjects.appserver.WOResponse;
 import com.webobjects.appserver.WOSession;
+import com.webobjects.foundation.NSData;
 import com.webobjects.appserver.WODirectAction;
 
 import net.rujel.analytics.components.Main;
@@ -48,4 +50,31 @@ public class DirectAction extends WODirectAction {
 		return result;
     }
 
+    public WOActionResults respondAction() {
+    	Application app = (Application)WOApplication.application();
+		WOResponse response = app.createResponseInContext(context());
+		response.setHeader("text/plain; charset=UTF-8","Content-Type");
+    	NSData content = context().request().content();
+    	String schoolID = context().request().stringFormValueForKey("schoolID");
+    	String queryID = context().request().stringFormValueForKey("queryID");
+		if(schoolID == null || queryID == null) {
+			response.appendContentString(
+					"Here we only accept service responses with schoolID and queryID");
+			response.setStatus(WOResponse.HTTP_STATUS_INTERNAL_ERROR);
+			return response;
+		}
+		try {
+			app.addResponse(content, schoolID, queryID);
+			response.appendContentString("OK");
+
+		} catch (Exception e) {
+			// TODO: handle exception
+			response.appendContentString("ERROR: ");
+			response.appendContentString(e.toString());
+			response.setStatus(WOResponse.HTTP_STATUS_INTERNAL_ERROR);
+			e.printStackTrace();
+		}
+		return response;
+    }
+    
 }
