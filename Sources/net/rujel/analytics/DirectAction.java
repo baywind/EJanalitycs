@@ -7,10 +7,8 @@ import com.webobjects.appserver.WOComponent;
 import com.webobjects.appserver.WORequest;
 import com.webobjects.appserver.WOResponse;
 import com.webobjects.appserver.WOSession;
-import com.webobjects.foundation.NSData;
 import com.webobjects.appserver.WODirectAction;
 
-import net.rujel.analytics.components.Main;
 import net.rujel.auth.LoginProcessor;
 import net.rujel.reusables.SettingsReader;
 
@@ -54,7 +52,7 @@ public class DirectAction extends WODirectAction {
     	Application app = (Application)WOApplication.application();
 		WOResponse response = app.createResponseInContext(context());
 		response.setHeader("text/plain; charset=UTF-8","Content-Type");
-    	NSData content = context().request().content();
+    	String content = context().request().contentString();
     	String schoolID = context().request().stringFormValueForKey("schoolID");
     	String queryID = context().request().stringFormValueForKey("queryID");
 		if(schoolID == null || queryID == null) {

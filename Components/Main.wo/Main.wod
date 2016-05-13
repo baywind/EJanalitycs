@@ -37,7 +37,7 @@ LoginLink : WOHyperlink {
 }
 
 Reports : WORepetition {
-  list = reports;
+  list = application.reports;
   item = item;
 }
 
@@ -109,7 +109,7 @@ QueryName : WOString {
 }
 
 Queries : WORepetition {
-  list = queries;
+  list = application.queries;
   item = query;
 }
 
